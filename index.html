@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Session Decoder — Like jwt.io for Flask</title>
+    <meta name="description" content="Decode, encode, verify, and forge Flask session cookies. Like jwt.io but for Flask/itsdangerous signed cookies.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍪</text></svg>">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🍪</span>
+                <h1>Flask Session Tool</h1>
+            </div>
+            <p class="tagline">Decode · Encode · Verify · Forge — Like <a href="https://jwt.io" target="_blank">jwt.io</a> for Flask sessions</p>
+        </div>
+    </header>
+
+    <main>
+        <!-- Mode Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="editor">Encoder / Decoder</button>
+            <button class="tab" data-tab="bruteforce">Brute-force Key</button>
+        </div>
+
+        <!-- EDITOR TAB (merged decode + encode, jwt.io style) -->
+        <div id="tab-editor" class="tab-content active">
+
+            <!-- Signature verification banner -->
+            <div id="verify-banner" class="verify-banner neutral">
+                <span id="verify-icon">🔑</span>
+                <span id="verify-text">Enter a secret key to verify or forge cookies</span>
+            </div>
+
+            <div class="editor-layout">
+                <!-- LEFT: Encoded cookie -->
+                <div class="editor-col encoded-side">
+                    <div class="col-header">
+                        <h2>Encoded</h2>
+                        <div class="col-actions">
+                            <button class="btn-small" id="paste-btn" title="Paste from clipboard">📋 Paste</button>
+                            <button class="btn-small" id="copy-encoded" title="Copy cookie">📄 Copy</button>
+                        </div>
+                    </div>
+                    <textarea id="encoded-input" class="editor-textarea encoded-textarea" placeholder="Paste a Flask session cookie here...
+
+Example:
+.eJw9jDEOgz..." spellcheck="false"></textarea>
+                    <div class="cookie-legend">
+                        <span><span class="dot payload-dot"></span> Payload</span>
+                        <span><span class="dot timestamp-dot"></span> Timestamp</span>
+                        <span><span class="dot signature-dot"></span> Signature</span>
+                    </div>
+                </div>
+
+                <!-- CENTER: Secret key + info -->
+                <div class="editor-center">
+                    <div class="center-block">
+                        <label class="center-label" for="secret-key">Secret Key</label>
+                        <input type="text" id="secret-key" placeholder="verysecretkey" spellcheck="false">
+                    </div>
+                    <div class="center-block">
+                        <label class="center-label">Options</label>
+                        <label class="option-check">
+                            <input type="checkbox" id="compress-option" checked>
+                            <span>Compress</span>
+                        </label>
+                        <div class="salt-row">
+                            <span>Salt</span>
+                            <input type="text" id="salt-option" value="cookie-session" class="salt-input" spellcheck="false">
+                        </div>
+                    </div>
+                    <div class="center-block">
+                        <label class="center-label">Cookie Info</label>
+                        <div id="cookie-info" class="cookie-info">—</div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Decoded payload -->
+                <div class="editor-col decoded-side">
+                    <div class="col-header">
+                        <h2>Decoded</h2>
+                        <div class="col-actions">
+                            <button class="btn-small" id="format-json" title="Format JSON">✨ Format</button>
+                            <button class="btn-small" id="copy-decoded" title="Copy JSON (minified)">📄 Copy</button>
+                        </div>
+                    </div>
+                    <textarea id="decoded-input" class="editor-textarea decoded-textarea" placeholder='{
+  "user": "admin",
+  "role": "guest"
+}' spellcheck="false"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- BRUTE-FORCE TAB -->
+        <div id="tab-bruteforce" class="tab-content">
+            <div class="columns">
+                <div class="column">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2>Session Cookie</h2>
+                        </div>
+                        <textarea id="brute-cookie" placeholder="Paste the Flask session cookie to crack..." spellcheck="false"></textarea>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2>Wordlist</h2>
+                        </div>
+                        <div class="wordlist-options">
+                            <label><input type="radio" name="wordlist-src" value="builtin" checked> Built-in common secrets</label>
+                            <label><input type="radio" name="wordlist-src" value="custom"> Custom (one per line)</label>
+                            <label><input type="radio" name="wordlist-src" value="file"> Upload file</label>
+                        </div>
+                        <textarea id="brute-wordlist" class="hidden" placeholder="Enter secrets, one per line..." spellcheck="false"></textarea>
+                        <input type="file" id="brute-file" class="hidden" accept=".txt,.lst,.list">
+                        <button class="btn-primary btn-danger" id="brute-btn">🔓 Start Brute-force</button>
+                        <button class="btn-secondary hidden" id="brute-stop-btn">⏹ Stop</button>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2>Results</h2>
+                        </div>
+                        <div id="brute-output" class="brute-results">
+                            <p class="placeholder-text">Results will appear here...</p>
+                        </div>
+                        <div id="brute-progress" class="progress-container hidden">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="brute-progress-fill"></div>
+                            </div>
+                            <p id="brute-progress-text">0 / 0 attempts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>100% client-side — no data leaves your browser. Built for CTF players & security researchers.</p>
+        <p>
+            <a href="https://github.com" target="_blank">GitHub</a> ·
+            Inspired by <a href="https://jwt.io" target="_blank">jwt.io</a>
+        </p>
+    </footer>
+
+    <script src="flask-session.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
